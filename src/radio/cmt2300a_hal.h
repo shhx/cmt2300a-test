@@ -39,7 +39,7 @@ extern "C" {
 #define CMT2300A_ReadGpio3()            digitalRead(CMT_GPIO3_GPIO)
 #define CMT2300A_DelayMs(ms)            delay(ms)
 #define CMT2300A_DelayUs(us)            delayMicroseconds(us)
-#define CMT2300A_GetTickCount()         esp_timer_get_time()
+#define CMT2300A_GetTickCount()         millis()
 /* ************************************************************************ */
 #define INFINITE 0xFFFFFFFF
 

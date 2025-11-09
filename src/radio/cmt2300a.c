@@ -587,10 +587,7 @@ bool CMT2300A_IsExist(void)
     dat = CMT2300A_ReadReg(CMT2300A_CUS_PKT17);
     CMT2300A_WriteReg(CMT2300A_CUS_PKT17, back);
 
-    if(0xAA==dat)
-        return true;
-    else
-        return false;
+    return dat == 0xAA;
 }
 
 /*! ********************************************************

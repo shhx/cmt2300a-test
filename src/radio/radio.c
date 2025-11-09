@@ -168,7 +168,6 @@ EnumRFResult RF_Process(void)
             g_nNextRFState = RF_STATE_RX_WAIT;
 
         g_nRxTimeCount = CMT2300A_GetTickCount();
-
         break;
     }
 
@@ -224,6 +223,7 @@ EnumRFResult RF_Process(void)
         CMT2300A_ClearTxFifo();
 
         /* The length need be smaller than 32 */
+        if (g_nTxLength > 32) g_nTxLength = 32;
         CMT2300A_WriteFifo(g_pTxBuffer, g_nTxLength);
 
         if( 0==(CMT2300A_MASK_TX_FIFO_NMTY_FLG & CMT2300A_ReadReg(CMT2300A_CUS_FIFO_FLAG)) )
@@ -293,4 +293,27 @@ EnumRFResult RF_Process(void)
     }
 
     return nRes;
+}
+
+const char* RF_ResultToStr(EnumRFResult result)
+{
+    switch(result)
+    {
+    case RF_IDLE:
+        return "RF_IDLE";
+    case RF_BUSY:
+        return "RF_BUSY";
+    case RF_RX_DONE:
+        return "RF_RX_DONE";
+    case RF_RX_TIMEOUT:
+        return "RF_RX_TIMEOUT";
+    case RF_TX_DONE:
+        return "RF_TX_DONE";
+    case RF_TX_TIMEOUT:
+        return "RF_TX_TIMEOUT";
+    case RF_ERROR:
+        return "RF_ERROR";
+    default:
+        return "UNKNOWN";
+    }
 }

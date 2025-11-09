@@ -52,7 +52,8 @@ typedef enum {
     RF_ERROR,
 } EnumRFResult;
 
-//#define ENABLE_ANTENNA_SWITCH
+
+#define ENABLE_ANTENNA_SWITCH // This also forces RX/TX donde check via register reads.
 
 void RF_Init(void);
 void RF_Config(void);
@@ -65,6 +66,7 @@ void RF_StartRx(uint8_t buf[], uint16_t len, uint32_t timeout);
 void RF_StartTx(uint8_t buf[], uint16_t len, uint32_t timeout);
 
 EnumRFResult RF_Process(void);
+const char* RF_ResultToStr(EnumRFResult result);
 
 #ifdef __cplusplus 
 } 

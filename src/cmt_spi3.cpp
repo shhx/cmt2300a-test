@@ -3,6 +3,7 @@
 #include <Arduino.h>
 #include <driver/spi_master.h>
 #include <string.h>
+#include "esp_heap_caps.h"
 
 #include "driver/gpio.h"
 #include "gpio_defs.h"
@@ -10,9 +11,13 @@
 static spi_device_handle_t g_spi_handle = NULL;
 
 void cmt_spi_init(void) {
+    pinMode(CMT_CSB_GPIO, OUTPUT);
+    pinMode(CMT_FCSB_GPIO, OUTPUT);
+    CMT2300A_CS_SET(1);
+    CMT2300A_FCSB_SET(1);
+
     spi_bus_config_t bus_config = {
-        .mosi_io_num =
-            CMT_SDIO_GPIO,  // MOSI pin (used for both TX and RX in 3-wire mode)
+        .mosi_io_num = CMT_SDIO_GPIO,  // MOSI pin (used for both TX and RX in 3-wire mode)
         .miso_io_num = -1,  // Not used in 3-wire mode
         .sclk_io_num = CMT_SCLK_GPIO,      // Clock pin
         .quadwp_io_num = -1,               // Not used
@@ -80,7 +85,9 @@ uint8_t cmt_spi_recv(void) {
     spi_transaction_t t;
     memset(&t, 0, sizeof(t));
 
-    t.length = 8; /* bits */
+    /* For half-duplex RX-only transactions use rxlength (bits) */
+    t.length = 0;
+    t.rxlength = 8; /* bits */
     t.flags = SPI_TRANS_USE_RXDATA;
 
     CMT2300A_CS_SET(0);
@@ -120,7 +127,7 @@ void cmt_spi_read(uint8_t addr, uint8_t* p_dat) {
     memset(&t_tx, 0, sizeof(t_tx));
     t_tx.length = 8;
     t_tx.flags = SPI_TRANS_USE_TXDATA;
-    t_tx.tx_data[0] = addr;
+    t_tx.tx_data[0] = addr | 0x80;  // Set MSB for read operation
 
     CMT2300A_CS_SET(0);
     esp_err_t ret = spi_device_transmit(g_spi_handle, &t_tx);
@@ -133,7 +140,9 @@ void cmt_spi_read(uint8_t addr, uint8_t* p_dat) {
     /* Receive data (RX phase) */
     spi_transaction_t t_rx;
     memset(&t_rx, 0, sizeof(t_rx));
+    /* RX-only in half-duplex: set rxlength */
     t_rx.length = 8;
+    t_rx.rxlength = 8;
     t_rx.flags = SPI_TRANS_USE_RXDATA;
 
     ret = spi_device_transmit(g_spi_handle, &t_rx);
@@ -147,14 +156,13 @@ void cmt_spi_read(uint8_t addr, uint8_t* p_dat) {
     *p_dat = t_rx.rx_data[0];
 }
 
-void cmt_spi3_write_fifo(const uint8_t* p_buf, uint16_t len) {
-    if (p_buf == NULL || len == 0) return;
-
-    CMT2300A_FCSB_SET(0);
+void cmt_spi3_write_fifo(const uint8_t dat) {
     spi_transaction_t t;
     memset(&t, 0, sizeof(t));
-    t.length = len * 8; // Length in bits
-    t.tx_buffer = p_buf;
+    t.length = 8; // Length in bits
+    t.flags = SPI_TRANS_USE_TXDATA;
+    t.tx_data[0] = dat;
+    CMT2300A_FCSB_SET(0);
     esp_err_t ret = spi_device_transmit(g_spi_handle, &t);
     CMT2300A_FCSB_SET(1);
     if (ret != ESP_OK) {
@@ -162,18 +170,46 @@ void cmt_spi3_write_fifo(const uint8_t* p_buf, uint16_t len) {
     }
 }
 
+void cmt_spi3_write_fifo(const uint8_t* p_buf, uint16_t len) {
+    if (p_buf == NULL || len == 0) return;
+    for (uint16_t i = 0; i < len; ++i) {
+        cmt_spi3_write_fifo(p_buf[i]);
+    }
+}
+
 void cmt_spi3_read_fifo(uint8_t* p_buf, uint16_t len) {
     if (p_buf == NULL || len == 0) return;
-
     CMT2300A_FCSB_SET(0);
+
+    /* Allocate DMA-capable buffer for RX because spi driver may use DMA */
+    uint8_t* rx_dma = (uint8_t*)heap_caps_malloc(len, MALLOC_CAP_DMA);
+    if (rx_dma == NULL) {
+        /* Fallback to byte-by-byte reads */
+        for (uint16_t i = 0; i < len; ++i) {
+            p_buf[i] = cmt_spi_recv();
+        }
+        CMT2300A_FCSB_SET(1);
+        return;
+    }
+
     spi_transaction_t t;
     memset(&t, 0, sizeof(t));
-    t.length = len * 8; // Length in bits
-    t.rx_buffer = p_buf;
+    t.length = 0;          // no TX bits
+    t.rxlength = len * 8;  // RX bits (half-duplex)
+    t.rx_buffer = rx_dma;
+
     esp_err_t ret = spi_device_transmit(g_spi_handle, &t);
     CMT2300A_FCSB_SET(1);
     if (ret != ESP_OK) {
         Serial.printf("cmt_spi3_read_fifo: spi_device_transmit failed: %s\n", esp_err_to_name(ret));
+        /* fallback */
+        for (uint16_t i = 0; i < len; ++i) {
+            p_buf[i] = cmt_spi_recv();
+        }
+        heap_caps_free(rx_dma);
         return;
     }
+
+    memcpy(p_buf, rx_dma, len);
+    heap_caps_free(rx_dma);
 }

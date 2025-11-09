@@ -43,7 +43,6 @@ uint8_t CMT2300A_ReadReg(uint8_t addr)
 {
     uint8_t dat = 0xFF;
     cmt_spi_read(addr, &dat);
-	
     return dat;
 }
 
