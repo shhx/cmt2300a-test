@@ -1,0 +1,7 @@
+#define CMT_GPIO1_GPIO 39
+#define CMT_GPIO2_GPIO 37
+#define CMT_GPIO3_GPIO 35
+#define CMT_SDIO_GPIO 5
+#define CMT_SCLK_GPIO 7
+#define CMT_CSB_GPIO 9
+#define CMT_FCSB_GPIO 11
