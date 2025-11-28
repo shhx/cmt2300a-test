@@ -60,6 +60,16 @@ void RF_Init(void)
 
 void RF_Config(void)
 {
+
+    CMT2300A_SetPayloadLength(16);
+    CMT2300A_SetNodeIdSize(4);
+    CMT2300A_SetNodeId(0x33335678);
+    CMT2300A_SetNodeMode(CMT2300A_NODE_MODE_NODE_0X00);
+    // uint8_t temp;
+    // temp = CMT2300A_ReadReg(CMT2300A_CUS_PKT14);
+    // temp |= 1 << 2;
+    // CMT2300A_WriteReg(CMT2300A_CUS_PKT14, temp);
+
 #ifdef ENABLE_ANTENNA_SWITCH
     /* If you enable antenna switch, GPIO1/GPIO2 will output RX_ACTIVE/TX_ACTIVE,
        and it can't output INT1/INT2 via GPIO1/GPIO2 */

@@ -3,12 +3,13 @@
 #include "driver/gpio.h"
 #include "driver/spi_master.h"
 #include "radio/radio.h"
-
-static uint8_t buf[17]; // Right now packet size its hardcoded to 17 bytes in src\radio\cmt2300a_params.h g_cmt2300aBasebandBank
+#define BUF_SIZE 17
+static uint8_t buf[BUF_SIZE]; // Right now packet size is hardcoded to 17 bytes in src\radio\cmt2300a_params.h g_cmt2300aBasebandBank
 static uint8_t cnt = 0;
 
 void setup() {
     Serial.begin(115200);
+    pinMode(LED_BUILTIN, OUTPUT);
     delay(100); // Wait for serial to initialize
     RF_Init();
     bool found = false;
@@ -32,6 +33,7 @@ void setup() {
 void loop() {
     EnumRFResult result = RF_Process();
     if (result == RF_TX_DONE) {
+        digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN)); // Toggle LED on TX done
         Serial.println("Transmission Completed!");
     } else if (result == RF_ERROR) {
         Serial.println("RF Error occurred!");

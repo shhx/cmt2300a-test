@@ -85,6 +85,9 @@ void CMT2300A_EnableLfoscOutput(bool bEnable);
 void CMT2300A_EnableAfc(bool bEnable);
 void CMT2300A_SetAfcOvfTh(uint8_t afcOvfTh);
 
+void CMT2300A_SetNodeMode(enum CMT2300A_NodeModes mode);
+void CMT2300A_SetNodeIdSize(uint8_t size);
+void CMT2300A_SetNodeId(uint32_t nodeId);
 
 /* ************************************************************************
 *  The following are for chip initializes.

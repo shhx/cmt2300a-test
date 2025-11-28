@@ -759,3 +759,27 @@ bool CMT2300A_ConfigRegBank(uint8_t base_addr, const uint8_t bank[], uint8_t len
 
     return true;
 }
+
+void CMT2300A_SetNodeMode(enum CMT2300A_NodeModes mode)
+{
+    uint8_t tmp = CMT2300A_ReadReg(CMT2300A_CUS_PKT16);
+    tmp &= ~CMT2300A_MASK_NODE_MODE;
+    tmp |= (mode & CMT2300A_MASK_NODE_MODE);
+    CMT2300A_WriteReg(CMT2300A_CUS_PKT16, tmp);
+}
+
+void CMT2300A_SetNodeIdSize(uint8_t size)
+{
+    uint8_t tmp = CMT2300A_ReadReg(CMT2300A_CUS_PKT16);
+    tmp &= ~(0b11 << 2);
+    tmp |= ((size - 1) & 0b11) << 2;
+    CMT2300A_WriteReg(CMT2300A_CUS_PKT16, tmp);
+}
+
+void CMT2300A_SetNodeId(uint32_t nodeId)
+{
+    CMT2300A_WriteReg(CMT2300A_CUS_PKT17, (uint8_t)(nodeId & 0xFF));
+    CMT2300A_WriteReg(CMT2300A_CUS_PKT18, (uint8_t)((nodeId >> 8) & 0xFF));
+    CMT2300A_WriteReg(CMT2300A_CUS_PKT19, (uint8_t)((nodeId >> 16) & 0xFF));
+    CMT2300A_WriteReg(CMT2300A_CUS_PKT20, (uint8_t)((nodeId >> 24) & 0xFF));
+}
